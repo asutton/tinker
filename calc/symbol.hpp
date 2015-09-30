@@ -11,6 +11,7 @@
 // -------------------------------------------------------------------------- //
 //                            Symbols
 
+
 // The base class of all symbols of a language. By
 // itself, this class is capable of representing
 // symbols that have no other attributes such as
@@ -20,17 +21,23 @@ class Symbol
   friend struct Symbol_table;
 
 public:
-  Symbol()
-    : str_(nullptr)
-  { }
+  Symbol(int);
 
   virtual ~Symbol() { }
 
   String const& spelling() const;
+  int           token() const;
 
 private:
-  String const* str_;  // The textual representation
+  String const* str_; // The textual representation
+  int           tok_; // The associated token kind
 };
+
+
+inline
+Symbol::Symbol(int k)
+  : str_(nullptr), tok_(k)
+{ }
 
 
 // Returns the spelling of the symbol.
@@ -40,6 +47,14 @@ Symbol::spelling() const
   return *str_;
 }
 
+
+// Returns the kind of token classfication of 
+// the symbol.
+inline int 
+Symbol::token() const 
+{ 
+  return tok_; 
+}
 
 
 // An integer symbol.
@@ -52,7 +67,7 @@ Symbol::spelling() const
 // useful to keep cached.
 struct Integer_sym : Symbol
 {
-  Integer_sym(int);
+  Integer_sym(int, int);
 
   int value() const;
   
@@ -61,8 +76,8 @@ struct Integer_sym : Symbol
 
 
 inline
-Integer_sym::Integer_sym(int n)
-  : val_(n)
+Integer_sym::Integer_sym(int k, int n)
+  : Symbol(k), val_(n)
 { }
 
 
@@ -81,9 +96,6 @@ Integer_sym::value() const { return val_; }
 struct Symbol_table : std::unordered_map<std::string, Symbol*>
 {
   ~Symbol_table();
-
-  Symbol* put(String const&);
-  Symbol* put(const char*);
 
   template<typename T, typename... Args>
   Symbol* put(String const&, Args&&...);
@@ -140,19 +152,6 @@ Symbol_table::put(String const& s, Args&&... args)
   }
   return iter->second;
 
-}
-
-
-inline Symbol* 
-Symbol_table::put(String const& s)
-{
-  return put<Symbol>(s);
-}
-
-inline Symbol* 
-Symbol_table::put(const char* s)
-{
-  return put<Symbol>(s);
 }
 
 

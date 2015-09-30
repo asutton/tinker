@@ -39,32 +39,37 @@ public:
   Token star();
   Token slash();
   Token percent();
+  
   Token eof();
   Token error();
 
 private:
   // Semantic actions
-  Token on_token(Token_kind);
-  Token on_integer(char const*, char const*);
+  Token on_token();
+  Token on_integer();
 
   // Lexing support
-  char peek() const { return cs_.peek(); }
-  char get() const  { return cs_.get(); }
+  char peek() const;
+  char get();
+  void ignore();
 
-  Token token(Token_kind); 
+  // Token constructors
+  Token symbol(); 
 
+  // Lexers
   void space();
   void digit();
 
-  State_flags   state_; // The lexer's state
-  Symbol_table& syms_;  // The symbol table
-  Char_stream&  cs_;    // The character stream
+  String_builder build_; // Cache characters during scan.
+  State_flags    state_; // The lexer's state
+  Symbol_table&  syms_;  // The symbol table
+  Char_stream&   cs_;    // The character stream
 };
 
 
 inline
 Lexer::Lexer(Symbol_table& s, Char_stream& cs)
-  : syms_(s), cs_(cs)
+  : build_(), state_(0), syms_(s), cs_(cs)
 { }
 
 
@@ -111,52 +116,62 @@ Lexer::scan(Token_stream& ts)
 }
 
 
+// Consume all 1-character symbols and create call
+// the corresponding semantic action.
+inline Token
+Lexer::symbol()
+{
+  get();
+  return on_token();
+}
+
+
 inline Token
 Lexer::lparen()
 {
-  return on_token(lparen_tok);
+  return symbol();
 }
 
 
 inline Token
 Lexer::rparen()
 {
-  return on_token(rparen_tok);
+  return symbol();
 }
 
 
 inline Token
 Lexer::plus()
 {
-  return on_token(plus_tok);
+  return symbol();
 }
 
 
 inline Token
 Lexer::minus()
 {
-  return on_token(minus_tok);
+  return symbol();
 }
 
 
 inline Token
 Lexer::star()
 {
-  return on_token(star_tok);
+  return symbol();
 }
 
 
 inline Token
 Lexer::slash()
 {
-  return on_token(slash_tok);
+  return symbol();
 }
 
 
 inline Token
 Lexer::percent()
 {
-  return on_token(percent_tok);
+  return symbol();
 }
 
 
@@ -164,12 +179,19 @@ Lexer::percent()
 inline Token
 Lexer::integer()
 {
-  char const* first = cs_.position();
   digit();
   while (is_decimal_digit(peek()))
     digit();
-  char const* last = cs_.position();
-  return on_integer(first, last);
+  return on_integer();
+}
+
+
+// digit ::= [0-9]
+inline void
+Lexer::digit()
+{
+  assert(is_decimal_digit(peek()));
+  get();
 }
 
 
@@ -182,13 +204,28 @@ Lexer::eof()
 }
 
 
-// digit ::= [0-9]
-inline void
-Lexer::digit()
-{
-  assert(is_decimal_digit(peek()));
-  get();
+inline char 
+Lexer::peek() const 
+{ 
+  return cs_.peek(); 
 }
+
+
+inline char 
+Lexer::get()
+{ 
+  char c = cs_.get(); 
+  build_.put(c);
+  return c;
+}
+
+
+inline void
+Lexer::ignore()
+{ 
+  cs_.get(); 
+}
+
 
 
 #endif

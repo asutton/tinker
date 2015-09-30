@@ -2,6 +2,8 @@
 #ifndef STRING_HPP
 #define STRING_HPP
 
+#include <cstring>
+#include <algorithm>
 #include <iosfwd>
 #include <string>
 #include <stdexcept>
@@ -159,6 +161,111 @@ inline char const*
 Stringbuf::end() const
 { 
   return begin() + buf_.size(); 
+}
+
+
+// -------------------------------------------------------------------------- //
+//                          String builder
+
+
+// The string builder facilitates the caching of characters
+// needed to form a string during lexical analysis.
+//
+// TODO: Allow strings greater than 32 bytes in length.
+// Basically, this entails implementing the small-string 
+// optimization.
+class String_builder
+{
+  static constexpr int init_size = 32;
+public:
+  String_builder();
+
+  String str() const;
+  String take();
+
+  void put(char c);
+  void put(char const*);
+  void put(char const*, int n);
+  void put(char const*, char const*);
+
+  void clear();
+  
+private:
+  char buf_[init_size];
+  int len_;
+};
+
+
+inline
+String_builder::String_builder()
+  : len_(0)
+{ 
+  std::fill(buf_, buf_ + init_size, 0);
+}
+
+
+// FIXME: This should return a string view, but until
+// we can efficiently hash-compare a string view against
+// a string, it won't matter.
+inline String
+String_builder::str() const
+{
+  return String(buf_, buf_ + len_);
+}
+
+
+// Return the string in the builder and then reset it.
+inline String
+String_builder::take()
+{
+  String s = str();
+  clear();
+  return s;
+}
+
+
+inline void
+String_builder::put(char c)
+{
+  if (len_ == init_size)
+    throw std::runtime_error("out of string memory");
+  buf_[len_++] = c;
+}
+
+
+inline void
+String_builder::put(char const* s)
+{
+  put(s, std::strlen(s));
+}
+
+
+inline void
+String_builder::put(char const* s, int n)
+{
+  if (init_size <= len_ + n)
+    throw std::runtime_error("out of string memory");
+  std::copy_n(s, n, buf_ + len_);
+  len_ += n;
+}
+
+
+inline void
+String_builder::put(char const* first, char const* last)
+{
+  put(first, last - first);
+}
+
+
+// Reset the string builder so that it's content
+// is empty. Also, zero-fill the buffer so we
+// don't have to think about null-terminating
+// strings.
+inline void
+String_builder::clear()
+{
+  len_ = 0;
+  std::fill(buf_, buf_ + init_size, 0);
 }
 
 

@@ -49,24 +49,20 @@ Lexer::scan()
 //
 // TODO: Support multi-character tokens.
 inline Token
-Lexer::on_token(Token_kind k)
+Lexer::on_token()
 {
-  char const* first = cs_.position();
-  char const* last = first + 1;
-  get();
-
-  // Get the symbol and return the token.
-  Symbol const* sym = syms_.get(String(first, last));
-  return Token(k, sym);
+  Symbol const* sym = syms_.get(build_.take());
+  return Token(sym->token(), sym);
 }
 
 
 // Return a new integer token.
 inline Token
-Lexer::on_integer(char const* first, char const* last)
+Lexer::on_integer()
 {
-  int n = string_to_int<int>(first, last, 10);
-  Symbol* sym = syms_.put<Integer_sym>(first, last, n);
+  String str = build_.take();
+  int n = string_to_int<int>(str, 10);
+  Symbol* sym = syms_.put<Integer_sym>(str, integer_tok, n);
   return Token(integer_tok, sym);
 }
 
@@ -80,9 +76,9 @@ Lexer::space()
   while (true) {
     char c = peek();
     if (is_space(c))
-      get();
+      ignore();
     else if (is_newline(c))
-      get();
+      ignore();
     else
       break;
   }
